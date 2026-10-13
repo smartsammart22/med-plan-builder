@@ -242,9 +242,6 @@ select:disabled{opacity:.5;cursor:not-allowed;}
     <div class="logo">My Meds Plan Builder</div>
     <div class="tagline">Free · No account · Nothing saved or transmitted</div>
   </div>
-  <div class="header-controls">
-    <button class="hdr-btn" id="toggleLarge">🔠 Larger Text</button>
-  </div>
 </header>
 
 <div class="layout">
@@ -473,7 +470,6 @@ document.getElementById('scheduleStart').value=toYMD(todayDate);
 document.getElementById('walletDate').textContent=fmtDisplayDate(todayDate);
 document.getElementById('medListDate').textContent='List current as of: '+fmtDisplayDate(todayDate);
 
-document.getElementById('toggleLarge').addEventListener('click',function(){document.body.classList.toggle('large-text');this.classList.toggle('active');this.textContent=document.body.classList.contains('large-text')?'🔠 Normal Text':'🔠 Larger Text';});
 document.getElementById('qtyMinus').addEventListener('click',function(){if(qty>0.5){qty=Math.round((qty-0.5)*10)/10;document.getElementById('qtyDisplay').textContent=fmtQ(qty);}});
 document.getElementById('qtyPlus').addEventListener('click',function(){if(qty<20){qty=Math.round((qty+0.5)*10)/10;document.getElementById('qtyDisplay').textContent=fmtQ(qty);}});
 
