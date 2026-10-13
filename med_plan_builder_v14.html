@@ -1,0 +1,978 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>My Meds Plan Builder</title>
+<style>
+:root{
+  --teal:#1a6b6b;--teal-light:#e8f4f4;--teal-mid:#2e9090;
+  --amber:#b45309;--amber-bg:#fef3c7;--amber-light:#fffbeb;
+  --coral:#c0392b;--coral-bg:#fdecea;
+  --cream:#faf8f4;--warm-gray:#6b6560;--border:#d4cfc9;
+  --text:#1c1917;--font:'Segoe UI',system-ui,sans-serif;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:var(--font);background:var(--cream);color:var(--text);font-size:14px;}
+body.large-text{font-size:17px;}
+
+.app-header{background:var(--teal);color:#fff;padding:12px 24px;display:flex;align-items:center;gap:12px;}
+.app-header .logo{font-size:1.25rem;font-weight:700;}
+.app-header .tagline{font-size:0.78rem;opacity:.8;margin-top:2px;}
+.pill-icon{width:32px;height:32px;background:rgba(255,255,255,.2);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.1rem;}
+.header-controls{margin-left:auto;display:flex;align-items:center;gap:8px;}
+.hdr-btn{background:rgba(255,255,255,.15);border:1.5px solid rgba(255,255,255,.4);color:#fff;padding:5px 13px;border-radius:20px;font-size:0.78rem;cursor:pointer;font-family:var(--font);transition:background .2s;}
+.hdr-btn:hover,.hdr-btn.active{background:rgba(255,255,255,.3);}
+
+.layout{display:grid;grid-template-columns:330px 1fr;min-height:calc(100vh - 58px);}
+
+.input-panel{background:#fff;border-right:1px solid var(--border);padding:18px 16px;overflow-y:auto;max-height:calc(100vh - 58px);position:sticky;top:0;}
+.panel-title{font-size:0.66rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--teal);margin-bottom:12px;padding-bottom:6px;border-bottom:2px solid var(--teal-light);}
+.form-group{margin-bottom:11px;}
+.form-group label{display:block;font-size:0.72rem;font-weight:600;color:var(--warm-gray);margin-bottom:3px;text-transform:uppercase;letter-spacing:.5px;}
+
+.med-search-wrap{position:relative;}
+.med-search-wrap input[type="text"]{width:100%;padding:8px 11px;border:1.5px solid var(--border);border-radius:8px;font-size:0.92rem;font-family:var(--font);background:var(--cream);}
+.med-search-wrap input[type="text"]:focus{outline:none;border-color:var(--teal-mid);background:#fff;}
+.dropdown-list{position:absolute;top:calc(100% + 3px);left:0;right:0;background:#fff;border:1.5px solid var(--teal-mid);border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,.12);z-index:200;display:none;max-height:240px;overflow-y:auto;}
+.dropdown-list.open{display:block;}
+.dropdown-group-label{padding:5px 11px 3px;font-size:0.66rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--teal);background:var(--teal-light);border-bottom:1px solid var(--border);position:sticky;top:0;}
+.dropdown-item{padding:8px 13px;font-size:0.86rem;cursor:pointer;border-bottom:1px solid #f0ede9;}
+.dropdown-item:last-child{border-bottom:none;}
+.dropdown-item:hover{background:var(--teal-light);}
+.dropdown-item .di-name{font-weight:600;}
+.dropdown-item .di-detail{font-size:0.74rem;color:var(--warm-gray);margin-top:1px;}
+
+select,input[type="text"],input[type="date"],input[type="number"]{width:100%;padding:7px 10px;border:1.5px solid var(--border);border-radius:7px;font-size:0.88rem;font-family:var(--font);background:var(--cream);appearance:none;}
+select:focus,input[type="date"]:focus,input[type="number"]:focus{outline:none;border-color:var(--teal-mid);background:#fff;}
+select:disabled{opacity:.5;cursor:not-allowed;}
+
+.qty-wrap{display:flex;align-items:center;gap:7px;}
+.qty-btn{width:28px;height:28px;border:1.5px solid var(--border);border-radius:6px;background:#fff;font-size:1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+.qty-btn:hover{border-color:var(--teal-mid);color:var(--teal);}
+.qty-display{font-size:1rem;font-weight:700;min-width:32px;text-align:center;}
+
+.flag-group{display:flex;flex-wrap:wrap;gap:5px;margin-top:3px;}
+.flag-chip{display:flex;align-items:center;gap:3px;padding:4px 8px;border:1.5px solid var(--border);border-radius:18px;font-size:0.72rem;cursor:pointer;user-select:none;background:#fff;}
+.flag-chip input{display:none;}
+.flag-chip.checked{background:var(--teal-light);border-color:var(--teal-mid);color:var(--teal);font-weight:600;}
+.flag-chip.warn.checked{background:var(--amber-bg);border-color:var(--amber);color:var(--amber);}
+.flag-chip.danger.checked{background:var(--coral-bg);border-color:var(--coral);color:var(--coral);}
+
+.day-chips{display:flex;flex-wrap:wrap;gap:4px;margin-top:3px;}
+.day-chip{display:flex;align-items:center;justify-content:center;width:34px;height:34px;border:1.5px solid var(--border);border-radius:50%;font-size:0.74rem;font-weight:700;cursor:pointer;user-select:none;background:#fff;color:var(--warm-gray);}
+.day-chip input{display:none;}
+.day-chip.checked{background:var(--teal);border-color:var(--teal);color:#fff;}
+.day-chip-all{border-radius:20px;width:auto;padding:0 10px;font-size:0.72rem;}
+
+.short-term-toggle{display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--amber-bg);border:1.5px solid var(--amber);border-radius:8px;cursor:pointer;margin-bottom:8px;}
+.short-term-toggle input[type="checkbox"]{width:16px;height:16px;accent-color:var(--amber);cursor:pointer;}
+.short-term-toggle span{font-size:0.8rem;font-weight:600;color:var(--amber);}
+.short-term-fields{display:none;background:var(--amber-light);border:1.5px solid var(--amber);border-radius:8px;padding:10px;margin-bottom:8px;}
+.short-term-fields.visible{display:block;}
+.st-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;}
+.st-label{font-size:0.68rem;font-weight:600;color:var(--amber);text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px;}
+
+.other-instruction-wrap{display:none;margin-top:6px;}
+.other-instruction-wrap.visible{display:block;}
+.other-instruction-wrap textarea{width:100%;padding:6px 9px;border:1.5px solid var(--border);border-radius:7px;font-size:0.82rem;font-family:var(--font);background:var(--cream);resize:vertical;min-height:48px;max-height:90px;}
+.other-instruction-wrap textarea:focus{outline:none;border-color:var(--teal-mid);background:#fff;}
+.char-count{font-size:0.66rem;color:var(--warm-gray);text-align:right;margin-top:2px;}
+
+.btn-add{width:100%;padding:9px;background:var(--teal);color:#fff;border:none;border-radius:7px;font-size:0.9rem;font-weight:600;cursor:pointer;margin-top:4px;}
+.btn-add:hover{background:var(--teal-mid);}
+.btn-print{width:100%;padding:9px;background:transparent;color:var(--teal);border:2px solid var(--teal);border-radius:7px;font-size:0.9rem;font-weight:600;cursor:pointer;margin-top:7px;}
+.btn-print:hover{background:var(--teal-light);}
+.btn-clear{width:100%;padding:6px;background:transparent;color:var(--warm-gray);border:1.5px solid var(--border);border-radius:7px;font-size:0.78rem;cursor:pointer;margin-top:6px;}
+.btn-clear:hover{border-color:var(--coral);color:var(--coral);}
+.divider{border:none;border-top:1px solid var(--border);margin:14px 0;}
+
+.added-meds{margin-top:12px;}
+.added-meds-title{font-size:0.66rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--teal);margin-bottom:7px;}
+.added-med-item{background:var(--teal-light);border-radius:7px;margin-bottom:6px;overflow:hidden;}
+.added-med-item.short-term-item{background:var(--amber-bg);}
+.added-med-header{display:flex;justify-content:space-between;align-items:flex-start;padding:7px 10px;}
+.added-med-name{font-weight:700;font-size:0.82rem;color:var(--teal);}
+.added-med-item.short-term-item .added-med-name{color:var(--amber);}
+.added-med-detail{font-size:0.7rem;color:var(--warm-gray);margin-top:1px;}
+.added-med-actions{display:flex;gap:5px;flex-shrink:0;}
+.remove-btn-sm{background:none;border:1.5px solid var(--border);color:var(--warm-gray);cursor:pointer;font-size:0.72rem;padding:3px 7px;border-radius:5px;}
+.remove-btn-sm:hover{border-color:var(--coral);color:var(--coral);background:var(--coral-bg);}
+.edit-btn-sm{background:none;border:1.5px solid var(--teal-mid);color:var(--teal);cursor:pointer;font-size:0.72rem;padding:3px 7px;border-radius:5px;}
+.edit-btn-sm:hover{background:var(--teal-light);}
+
+/* Inline edit panel */
+.inline-edit-panel{display:none;padding:10px;border-top:1.5px solid var(--border);background:#fff;}
+.inline-edit-panel .ie-label{font-size:0.66rem;font-weight:600;color:var(--warm-gray);text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px;display:block;}
+.inline-edit-panel .ie-section{margin-bottom:8px;}
+.inline-edit-panel select,
+.inline-edit-panel input[type="date"],
+.inline-edit-panel input[type="number"]{padding:5px 8px;font-size:0.82rem;}
+.inline-edit-panel .ie-chips{display:flex;flex-wrap:wrap;gap:4px;}
+.inline-edit-panel .ie-save{flex:1;padding:7px;background:var(--teal);color:#fff;border:none;border-radius:6px;font-size:0.82rem;font-weight:600;cursor:pointer;}
+.inline-edit-panel .ie-save:hover{background:var(--teal-mid);}
+.inline-edit-panel .ie-cancel{padding:7px 12px;background:transparent;color:var(--warm-gray);border:1.5px solid var(--border);border-radius:6px;font-size:0.82rem;cursor:pointer;}
+.inline-edit-panel .ie-cancel:hover{border-color:var(--coral);color:var(--coral);}
+.inline-edit-panel .ie-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+
+.preview-panel{padding:20px;overflow-y:auto;}
+.preview-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:8px;}
+.preview-header h2{font-size:0.88rem;font-weight:700;color:var(--teal);text-transform:uppercase;letter-spacing:1px;}
+
+.start-date-bar{background:var(--teal-light);border:1.5px solid var(--teal-mid);border-radius:8px;padding:10px 14px;margin-bottom:14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+.start-date-bar label{font-size:0.72rem;font-weight:700;color:var(--teal);text-transform:uppercase;letter-spacing:.5px;white-space:nowrap;}
+.start-date-bar input[type="date"]{width:auto;flex:0 0 auto;padding:5px 9px;font-size:0.86rem;}
+.start-date-bar .duration-note{font-size:0.72rem;color:var(--warm-gray);font-style:italic;}
+
+.week-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;gap:8px;}
+.week-nav-btn{background:#fff;border:1.5px solid var(--teal-mid);color:var(--teal);padding:5px 14px;border-radius:20px;font-size:0.8rem;font-weight:600;cursor:pointer;}
+.week-nav-btn:hover{background:var(--teal-light);}
+.week-nav-btn:disabled{opacity:.35;cursor:not-allowed;}
+.week-nav-label{font-size:0.8rem;font-weight:600;color:var(--teal);text-align:center;}
+
+.screen-schedule{margin-bottom:20px;}
+
+.print-doc{background:#fff;border:1px solid var(--border);border-radius:10px;overflow:hidden;box-shadow:0 2px 18px rgba(0,0,0,.07);margin-bottom:20px;}
+.doc-header{background:var(--teal);color:#fff;padding:10px 18px;display:flex;align-items:flex-start;justify-content:space-between;gap:12px;}
+.doc-header-left{display:flex;flex-direction:column;gap:2px;}
+.doc-header .doc-title{font-size:1.1rem;font-weight:700;line-height:1.2;}
+.doc-header .doc-meta{font-size:0.72rem;opacity:.8;margin-top:2px;}
+.doc-header-right{text-align:right;flex-shrink:0;}
+.name-line-header{display:flex;align-items:baseline;gap:6px;justify-content:flex-end;}
+.name-line-header .nl-label{font-weight:700;opacity:.75;white-space:nowrap;font-size:0.68rem;text-transform:uppercase;letter-spacing:.5px;}
+.name-line-header .nl-rule{border-bottom:1.5px solid rgba(255,255,255,.5);min-width:120px;}
+.privacy-note-header{font-size:0.62rem;opacity:.6;margin-top:4px;text-align:right;}
+.doc-body{padding:14px 16px;}
+
+.pack-grid{display:grid;grid-template-columns:90px repeat(7,1fr);gap:0;border:2px solid var(--teal);border-radius:8px;overflow:hidden;width:100%;}
+.pack-corner{background:var(--teal);display:flex;align-items:center;justify-content:center;padding:6px 3px;}
+.pack-corner span{font-size:0.55rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:rgba(255,255,255,.7);text-align:center;}
+.pack-day-header{background:var(--teal);color:#fff;text-align:center;padding:7px 2px;font-size:0.7rem;font-weight:700;border-left:2px solid rgba(255,255,255,.35);}
+.pack-day-header .day-name{font-size:0.62rem;opacity:.8;display:block;}
+.pack-day-header .day-date{font-size:0.76rem;font-weight:800;display:block;}
+.pack-day-header.empty-col{background:rgba(26,107,107,.35);}
+.slot-label{background:var(--teal-light);border-top:2px solid var(--teal-mid);border-right:2px solid var(--teal-mid);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:6px 3px;text-align:center;}
+.slot-icon{font-size:1rem;margin-bottom:1px;}
+.slot-header{font-size:0.56rem;font-weight:700;color:var(--teal);line-height:1.3;}
+.pack-pocket{border-top:2px solid var(--teal-mid);border-left:2px solid var(--teal-mid);padding:5px;min-height:64px;background:#fff;}
+.pack-pocket.empty{background:#fafafa;}
+.pack-pocket.short-term-active{background:var(--amber-light);}
+.pack-pocket.out-of-range{background:#f0f0f0;}
+.pack-cell-content{font-size:0.72rem;line-height:1.4;}
+.pocket-med{display:flex;align-items:flex-start;gap:4px;padding:2px 0;border-bottom:1px dashed #ccc;}
+.pocket-med:last-child{border-bottom:none;}
+.pocket-checkbox{width:11px;height:11px;border:1.5px solid #555;border-radius:2px;flex-shrink:0;margin-top:2px;background:#fff;display:inline-block;}
+.pocket-med-text{flex:1;min-width:0;}
+.pocket-med-nameline{display:flex;align-items:baseline;gap:3px;flex-wrap:wrap;}
+.pocket-med-name{font-weight:700;color:var(--teal);font-size:0.72rem;}
+.pocket-med-name.short-term{color:var(--amber);}
+.pocket-med-strength{font-size:0.66rem;color:var(--warm-gray);}
+.pocket-med-qty{font-size:0.68rem;font-weight:600;color:var(--text);}
+.pocket-med-flags{font-size:0.62rem;color:var(--warm-gray);font-style:italic;margin-top:1px;line-height:1.3;}
+.empty-pocket-text{color:#ccc;font-size:0.66rem;text-align:center;padding-top:12px;}
+
+.empty-state{text-align:center;padding:40px 20px;color:var(--warm-gray);}
+.empty-state .icon{font-size:2.6rem;margin-bottom:10px;}
+.empty-state p{font-size:0.86rem;line-height:1.6;}
+
+.med-list-page{background:#fff;border:1px solid var(--border);border-radius:10px;overflow:hidden;box-shadow:0 2px 18px rgba(0,0,0,.07);margin-bottom:20px;}
+.med-list-table{width:100%;border-collapse:collapse;font-size:0.82rem;}
+.med-list-table th{background:var(--teal-light);color:var(--teal);font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;padding:7px 10px;border-bottom:2px solid var(--teal-mid);text-align:left;}
+.med-list-table td{padding:8px 10px;border-bottom:1px solid var(--border);vertical-align:top;}
+.med-list-table tr:last-child td{border-bottom:none;}
+.med-list-table tr:nth-child(even) td{background:#fafaf8;}
+.med-list-table tr.short-term-row td{background:var(--amber-light);}
+.med-list-name{font-weight:700;color:var(--teal);}
+.med-list-name.short-term{color:var(--amber);}
+.med-list-badge{display:inline-block;font-size:0.6rem;font-weight:700;padding:1px 5px;border-radius:10px;background:var(--amber-bg);color:var(--amber);border:1px solid var(--amber);margin-left:4px;vertical-align:middle;}
+.med-list-flags{font-size:0.7rem;color:var(--warm-gray);font-style:italic;margin-top:2px;}
+
+.wallet-section{background:#fff;border:1px solid var(--border);border-radius:10px;overflow:hidden;box-shadow:0 2px 18px rgba(0,0,0,.07);margin-bottom:20px;}
+.wallet-inner{padding:14px 16px;}
+.wallet-instruction{font-size:0.72rem;color:var(--warm-gray);margin-bottom:11px;font-style:italic;}
+.wallet-card{display:grid;grid-template-columns:1fr 1fr;border:2px solid var(--teal);border-radius:9px;overflow:hidden;font-size:0.74rem;max-width:520px;}
+.wallet-left{background:var(--teal);color:#fff;padding:12px 14px;}
+.wallet-right{background:#fff;padding:12px 14px;border-left:2px dashed var(--teal);}
+.wallet-title{font-size:0.6rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;opacity:.8;margin-bottom:6px;}
+.wallet-med-row{padding:3px 0;border-bottom:1px solid rgba(255,255,255,.15);font-size:0.7rem;line-height:1.4;}
+.wallet-right .wallet-med-row{border-bottom-color:var(--border);color:var(--text);}
+.wallet-med-row:last-child{border-bottom:none;}
+.wallet-med-name{font-weight:700;}
+.wallet-med-detail{opacity:.8;font-size:0.66rem;}
+.wallet-right .wallet-med-detail{color:var(--warm-gray);}
+.wallet-id-block{margin-bottom:8px;}
+.wallet-id-block .label{font-size:0.58rem;opacity:.7;text-transform:uppercase;letter-spacing:.8px;}
+.wallet-id-block .value{font-weight:700;font-size:0.76rem;}
+
+.print-all-weeks{display:none;}
+
+@media print{
+  @page{size:landscape;margin:8mm;}
+  body{background:#fff;font-size:10px;}
+  .app-header,.input-panel,.preview-header,.start-date-bar,.week-nav,.header-controls,.screen-schedule{display:none!important;}
+  .layout{display:block;}
+  .preview-panel{padding:0;}
+  .print-all-weeks{display:block!important;}
+  .print-week-block{page-break-after:always;}
+  .print-week-block:last-child{page-break-after:avoid;}
+  .med-list-page,.wallet-section{page-break-before:always;border:none;border-radius:0;box-shadow:none;margin-bottom:0;}
+  .wallet-section{page-break-after:auto;}
+  .doc-header,.pack-day-header,.pack-corner,.slot-label,.wallet-left,.med-list-table th{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+  .pack-day-header.empty-col{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+  .wallet-instruction{display:none;}
+  .print-doc{border:none;border-radius:0;box-shadow:none;margin-bottom:0;}
+  .pack-grid{width:100%;}
+  .pack-pocket{min-height:52px;}
+  .pack-cell-content,.pocket-med-name,.pocket-med-strength,.pocket-med-qty,.pocket-med-flags{font-size:0.62rem;}
+  .slot-header{font-size:0.52rem;}
+  .pack-day-header{font-size:0.62rem;padding:5px 2px;}
+  .doc-header{padding:7px 14px;}
+  .doc-header .doc-title{font-size:1rem;}
+  .pocket-checkbox{border-color:#333;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+  .pack-pocket.short-term-active{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+  .med-list-table tr.short-term-row td{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+}
+</style>
+</head>
+<body>
+
+<header class="app-header">
+  <div class="pill-icon">💊</div>
+  <div>
+    <div class="logo">My Meds Plan Builder</div>
+    <div class="tagline">Free · No account · Nothing saved or transmitted</div>
+  </div>
+  <div class="header-controls">
+    <button class="hdr-btn" id="toggleLarge">🔠 Larger Text</button>
+  </div>
+</header>
+
+<div class="layout">
+<aside class="input-panel">
+  <div class="panel-title">Add a Medication</div>
+
+  <div class="form-group">
+    <label>Medication Name</label>
+    <div class="med-search-wrap">
+      <input type="text" id="medSearch" placeholder="Start typing a medication name…" autocomplete="off"/>
+      <div class="dropdown-list" id="dropdownList"></div>
+    </div>
+  </div>
+
+  <div class="form-group">
+    <label>Strength &amp; Form</label>
+    <select id="strengthSelect" disabled><option value="">— Select medication first —</option></select>
+  </div>
+
+  <div class="form-group">
+    <label>How Many to Take</label>
+    <div class="qty-wrap">
+      <button class="qty-btn" id="qtyMinus">−</button>
+      <span class="qty-display" id="qtyDisplay">1</span>
+      <button class="qty-btn" id="qtyPlus">+</button>
+      <span style="font-size:0.8rem;color:var(--warm-gray);margin-left:4px;" id="qtyUnit">tablet(s)</span>
+    </div>
+  </div>
+
+  <div class="form-group">
+    <label>Time of Day</label>
+    <div class="flag-group" id="timeChips">
+      <label class="flag-chip" data-slot="Morning (before breakfast)"><input type="checkbox"/>🌅 Morning</label>
+      <label class="flag-chip" data-slot="Breakfast"><input type="checkbox"/>🍳 Breakfast</label>
+      <label class="flag-chip" data-slot="Noon"><input type="checkbox"/>☀️ Noon</label>
+      <label class="flag-chip" data-slot="Dinner"><input type="checkbox"/>🌆 Dinner</label>
+      <label class="flag-chip" data-slot="Bedtime"><input type="checkbox"/>🌙 Bedtime</label>
+    </div>
+  </div>
+
+  <label class="short-term-toggle">
+    <input type="checkbox" id="shortTermCheck"/>
+    <span>⏳ Short-term / limited course</span>
+  </label>
+
+  <div class="short-term-fields" id="shortTermFields">
+    <div class="st-row">
+      <div>
+        <div class="st-label">Start Date</div>
+        <input type="date" id="stStartDate"/>
+      </div>
+      <div>
+        <div class="st-label">Duration (days, max 31)</div>
+        <input type="number" id="stDuration" min="1" max="31" placeholder="e.g. 7"/>
+      </div>
+    </div>
+    <div style="font-size:0.7rem;color:var(--amber);font-style:italic;">This med will only appear on days within its course.</div>
+  </div>
+
+  <div class="form-group" id="regularDaysGroup">
+    <label>Days of Week</label>
+    <div class="day-chips" id="dayChips">
+      <label class="day-chip day-chip-all" data-action="all"><input type="checkbox"/>Every day</label>
+      <label class="day-chip" data-day="0"><input type="checkbox"/>Su</label>
+      <label class="day-chip" data-day="1"><input type="checkbox"/>M</label>
+      <label class="day-chip" data-day="2"><input type="checkbox"/>Tu</label>
+      <label class="day-chip" data-day="3"><input type="checkbox"/>W</label>
+      <label class="day-chip" data-day="4"><input type="checkbox"/>Th</label>
+      <label class="day-chip" data-day="5"><input type="checkbox"/>F</label>
+      <label class="day-chip" data-day="6"><input type="checkbox"/>Sa</label>
+    </div>
+  </div>
+
+  <div class="form-group">
+    <label>Special Instructions</label>
+    <div class="flag-group" id="flagGroup">
+      <label class="flag-chip" data-flag="food"><input type="checkbox"/>🍽️ With food</label>
+      <label class="flag-chip warn" data-flag="empty"><input type="checkbox"/>⏰ Empty stomach</label>
+      <label class="flag-chip" data-flag="water"><input type="checkbox"/>💧 Full glass of water</label>
+      <label class="flag-chip danger" data-flag="nocrush"><input type="checkbox"/>🚫 Do not crush</label>
+      <label class="flag-chip danger" data-flag="highalert"><input type="checkbox"/>⚠️ High-alert</label>
+      <label class="flag-chip" data-flag="upright"><input type="checkbox"/>🧍 Stay upright 30 min</label>
+      <label class="flag-chip" data-flag="other" id="otherFlagChip"><input type="checkbox"/>✏️ Other</label>
+    </div>
+    <div class="other-instruction-wrap" id="otherWrap">
+      <textarea id="otherText" maxlength="80" placeholder="Type custom instruction (max 80 characters)…"></textarea>
+      <div class="char-count"><span id="charCount">0</span>/80</div>
+    </div>
+  </div>
+
+  <hr class="divider"/>
+  <button class="btn-add" id="addBtn">+ Add to Schedule</button>
+  <button class="btn-print" onclick="window.print()">🖨️ Print / Save as PDF (all pages)</button>
+  <button class="btn-clear" id="clearBtn">Clear all medications</button>
+  <div class="added-meds" id="addedMeds"></div>
+</aside>
+
+<main class="preview-panel">
+  <div class="preview-header"><h2>Live Preview</h2></div>
+
+  <div class="start-date-bar">
+    <label for="scheduleStart">📅 Start Date:</label>
+    <input type="date" id="scheduleStart"/>
+    <label for="scheduleEnd">End Date:</label>
+    <input type="date" id="scheduleEnd"/>
+    <span class="duration-note">7 days per page · all weeks print together</span>
+  </div>
+
+  <div class="screen-schedule">
+    <div class="week-nav" id="weekNav" style="display:none;">
+      <button class="week-nav-btn" id="prevWeek">← Previous</button>
+      <span class="week-nav-label" id="weekNavLabel"></span>
+      <button class="week-nav-btn" id="nextWeek">Next →</button>
+    </div>
+    <div class="print-doc" id="scheduleDoc">
+      <div class="doc-header">
+        <div class="doc-header-left">
+          <div class="doc-title">My Medication Schedule</div>
+          <div class="doc-meta" id="schedDateRange">Set a start and end date to see your schedule</div>
+        </div>
+        <div class="doc-header-right">
+          <div class="name-line-header"><span class="nl-label">Patient Name</span><span class="nl-rule"></span></div>
+          <div class="privacy-note-header">Nothing on this form is saved or transmitted.</div>
+        </div>
+      </div>
+      <div class="doc-body" id="scheduleBody">
+        <div class="empty-state"><div class="icon">💊</div><p>Add medications and set a start date<br/>to build your schedule.</p></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="print-all-weeks" id="printAllWeeks"></div>
+
+  <div class="med-list-page" id="medListPage" style="display:none;">
+    <div class="doc-header">
+      <div class="doc-header-left">
+        <div class="doc-title">Current Medication List</div>
+        <div class="doc-meta" id="medListDate"></div>
+      </div>
+      <div class="doc-header-right">
+        <div class="name-line-header"><span class="nl-label">Patient Name</span><span class="nl-rule"></span></div>
+        <div class="privacy-note-header">Nothing on this form is saved or transmitted.</div>
+      </div>
+    </div>
+    <div class="doc-body">
+      <table class="med-list-table">
+        <thead>
+          <tr>
+            <th>Medicine</th><th>Strength</th><th>How Much</th><th>When</th><th>Days</th><th>Special Instructions</th><th>Dates</th>
+          </tr>
+        </thead>
+        <tbody id="medListBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="wallet-section" id="walletSection" style="display:none;">
+    <div class="doc-header">
+      <div class="doc-header-left">
+        <div class="doc-title">Wallet Card</div>
+        <div class="doc-meta">Cut · Fold · Laminate · Keep with your ID</div>
+      </div>
+    </div>
+    <div class="wallet-inner">
+      <div class="wallet-instruction">Cut along the dashed border. Fold on the center line so printing faces out. Tape edges or laminate.</div>
+      <div class="wallet-card">
+        <div class="wallet-left">
+          <div class="wallet-title">My Medicines · ID</div>
+          <div class="wallet-id-block"><div class="label">List current as of</div><div class="value" id="walletDate"></div></div>
+          <div class="wallet-id-block"><div class="label">Pharmacy</div><div class="value">—</div></div>
+          <div class="wallet-id-block"><div class="label">Emergency contact</div><div class="value">—</div></div>
+          <div class="wallet-id-block"><div class="label">Allergies</div><div class="value">—</div></div>
+        </div>
+        <div class="wallet-right">
+          <div class="wallet-title" style="color:var(--teal);">Current Medicines</div>
+          <div id="walletMedList"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+</div>
+
+<script>
+function getUnit(form){
+  const f=(form||'').toLowerCase();
+  if(f.includes('inhaler'))return'puff(s)';
+  if(f.includes('nasal spray'))return'spray(s)';
+  if(f.includes('injection')||f.includes('pen')||f.includes('prefilled'))return'mg';
+  if(f.includes('powder'))return'gm';
+  if(f.includes('capsule'))return'capsule(s)';
+  if(f.includes('tablet'))return'tablet(s)';
+  if(f.includes('eye drop')||f.includes('drop'))return'drop(s)';
+  if(f.includes('gel')||f.includes('cream')||f.includes('ointment')||f.includes('foam')||f.includes('solution'))return'application(s)';
+  if(f.includes('film')||f.includes('sublingual'))return'film(s)';
+  if(f.includes('patch'))return'patch(es)';
+  if(f.includes('lozenge')||f.includes('troche'))return'lozenge(s)';
+  return'dose(s)';
+}
+function fmtQ(v){return Number.isInteger(v)?String(v):v.toFixed(1);}
+function parseLocalDate(str){if(!str)return null;const[y,m,d]=str.split('-').map(Number);return new Date(y,m-1,d);}
+function addDays(date,n){const d=new Date(date);d.setDate(d.getDate()+n);return d;}
+function fmtColDate(date){const days=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];const months=['1','2','3','4','5','6','7','8','9','10','11','12'];return{dayName:days[date.getDay()],dateStr:months[date.getMonth()]+'/'+String(date.getDate()).padStart(2,'0')};}
+function fmtDisplayDate(date){return date.toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});}
+function toYMD(date){return date.getFullYear()+'-'+String(date.getMonth()+1).padStart(2,'0')+'-'+String(date.getDate()).padStart(2,'0');}
+function escHtml(s){return(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+
+function getTotalDays(){
+  const s=parseLocalDate(document.getElementById('scheduleStart').value);
+  const e=parseLocalDate(document.getElementById('scheduleEnd').value);
+  if(!s||!e||e<s)return 31;
+  return Math.min(Math.floor((e-s)/(1000*60*60*24))+1,31);
+}
+
+const SLOT_ORDER=["Morning (before breakfast)","Breakfast","Noon","Dinner","Bedtime"];
+const SLOT_META={"Morning (before breakfast)":{icon:"🌅",label:"Morning\n(before breakfast)"},"Breakfast":{icon:"🍳",label:"Breakfast"},"Noon":{icon:"☀️",label:"Noon"},"Dinner":{icon:"🌆",label:"Dinner"},"Bedtime":{icon:"🌙",label:"Bedtime"}};
+const FLAG_DEFS=[{key:"food"},{key:"empty"},{key:"water"},{key:"nocrush"},{key:"highalert"},{key:"upright"}];
+const FLAG_TEXT={food:"Take with food",empty:"Take on empty stomach",water:"Take with a full glass of water",nocrush:"Do not crush or chew",highalert:"HIGH-ALERT medication",upright:"Stay upright 30 min after taking"};
+const SLOT_LABELS={"Morning (before breakfast)":"🌅 Morning","Breakfast":"🍳 Breakfast","Noon":"☀️ Noon","Dinner":"🌆 Dinner","Bedtime":"🌙 Bedtime"};
+
+let medications=[],nextId=1,qty=1,selectedMedIndex=null,currentWeekOffset=0;
+const editQtyMap={};
+
+const todayDate=new Date();
+document.getElementById('scheduleStart').value=toYMD(todayDate);
+document.getElementById('walletDate').textContent=fmtDisplayDate(todayDate);
+document.getElementById('medListDate').textContent='List current as of: '+fmtDisplayDate(todayDate);
+
+document.getElementById('toggleLarge').addEventListener('click',function(){document.body.classList.toggle('large-text');this.classList.toggle('active');this.textContent=document.body.classList.contains('large-text')?'🔠 Normal Text':'🔠 Larger Text';});
+document.getElementById('qtyMinus').addEventListener('click',function(){if(qty>0.5){qty=Math.round((qty-0.5)*10)/10;document.getElementById('qtyDisplay').textContent=fmtQ(qty);}});
+document.getElementById('qtyPlus').addEventListener('click',function(){if(qty<20){qty=Math.round((qty+0.5)*10)/10;document.getElementById('qtyDisplay').textContent=fmtQ(qty);}});
+
+document.getElementById('shortTermCheck').addEventListener('change',function(){
+  document.getElementById('shortTermFields').classList.toggle('visible',this.checked);
+  document.getElementById('regularDaysGroup').style.display=this.checked?'none':'';
+});
+document.getElementById('otherFlagChip').addEventListener('click',function(){
+  const cb=this.querySelector('input');
+  document.getElementById('otherWrap').classList.toggle('visible',cb.checked);
+  if(!cb.checked){document.getElementById('otherText').value='';document.getElementById('charCount').textContent='0';}
+});
+document.getElementById('otherText').addEventListener('input',function(){document.getElementById('charCount').textContent=this.value.length;});
+
+const medSearch=document.getElementById('medSearch');
+const dropdownList=document.getElementById('dropdownList');
+const strengthSelect=document.getElementById('strengthSelect');
+
+const MED_DB=[
+  {name:"Atorvastatin",brand:"Lipitor",cls:"Statin",form:"tablet",strengths:["10 mg","20 mg","40 mg","80 mg"]},
+  {name:"Rosuvastatin",brand:"Crestor",cls:"Statin",form:"tablet",strengths:["5 mg","10 mg","20 mg","40 mg"]},
+  {name:"Simvastatin",brand:"Zocor",cls:"Statin",form:"tablet",strengths:["5 mg","10 mg","20 mg","40 mg","80 mg"]},
+  {name:"Pravastatin",brand:"Pravachol",cls:"Statin",form:"tablet",strengths:["10 mg","20 mg","40 mg","80 mg"]},
+  {name:"Lovastatin",brand:"Mevacor",cls:"Statin",form:"tablet",strengths:["10 mg","20 mg","40 mg"]},
+  {name:"Pitavastatin",brand:"Livalo",cls:"Statin",form:"tablet",strengths:["1 mg","2 mg","4 mg"]},
+  {name:"Lisinopril",brand:"Prinivil / Zestril",cls:"ACE Inhibitor",form:"tablet",strengths:["2.5 mg","5 mg","10 mg","20 mg","30 mg","40 mg"]},
+  {name:"Benazepril",brand:"Lotensin",cls:"ACE Inhibitor",form:"tablet",strengths:["5 mg","10 mg","20 mg","40 mg"]},
+  {name:"Enalapril",brand:"Vasotec",cls:"ACE Inhibitor",form:"tablet",strengths:["2.5 mg","5 mg","10 mg","20 mg"]},
+  {name:"Ramipril",brand:"Altace",cls:"ACE Inhibitor",form:"capsule",strengths:["1.25 mg","2.5 mg","5 mg","10 mg"]},
+  {name:"Captopril",brand:"",cls:"ACE Inhibitor",form:"tablet",strengths:["12.5 mg","25 mg","50 mg","100 mg"]},
+  {name:"Losartan",brand:"Cozaar",cls:"ARB",form:"tablet",strengths:["25 mg","50 mg","100 mg"]},
+  {name:"Valsartan",brand:"Diovan",cls:"ARB",form:"tablet",strengths:["40 mg","80 mg","160 mg","320 mg"]},
+  {name:"Irbesartan",brand:"Avapro",cls:"ARB",form:"tablet",strengths:["75 mg","150 mg","300 mg"]},
+  {name:"Olmesartan",brand:"Benicar",cls:"ARB",form:"tablet",strengths:["5 mg","20 mg","40 mg"]},
+  {name:"Telmisartan",brand:"Micardis",cls:"ARB",form:"tablet",strengths:["20 mg","40 mg","80 mg"]},
+  {name:"Candesartan",brand:"Atacand",cls:"ARB",form:"tablet",strengths:["4 mg","8 mg","16 mg","32 mg"]},
+  {name:"Metoprolol succinate",brand:"Toprol XL",cls:"Beta Blocker",form:"extended-release tablet",strengths:["25 mg","50 mg","100 mg","200 mg"]},
+  {name:"Metoprolol tartrate",brand:"Lopressor",cls:"Beta Blocker",form:"tablet",strengths:["25 mg","50 mg","100 mg"]},
+  {name:"Atenolol",brand:"Tenormin",cls:"Beta Blocker",form:"tablet",strengths:["25 mg","50 mg","100 mg"]},
+  {name:"Carvedilol",brand:"Coreg",cls:"Beta Blocker",form:"tablet",strengths:["3.125 mg","6.25 mg","12.5 mg","25 mg"]},
+  {name:"Propranolol",brand:"Inderal",cls:"Beta Blocker",form:"tablet",strengths:["10 mg","20 mg","40 mg","80 mg"]},
+  {name:"Bisoprolol",brand:"Zebeta",cls:"Beta Blocker",form:"tablet",strengths:["5 mg","10 mg"]},
+  {name:"Nebivolol",brand:"Bystolic",cls:"Beta Blocker",form:"tablet",strengths:["2.5 mg","5 mg","10 mg","20 mg"]},
+  {name:"Amlodipine",brand:"Norvasc",cls:"Calcium Channel Blocker",form:"tablet",strengths:["2.5 mg","5 mg","10 mg"]},
+  {name:"Diltiazem",brand:"Cardizem",cls:"Calcium Channel Blocker",form:"extended-release capsule",strengths:["120 mg","180 mg","240 mg","300 mg","360 mg"]},
+  {name:"Verapamil",brand:"Calan",cls:"Calcium Channel Blocker",form:"tablet",strengths:["40 mg","80 mg","120 mg"]},
+  {name:"Nifedipine",brand:"Procardia",cls:"Calcium Channel Blocker",form:"extended-release tablet",strengths:["30 mg","60 mg","90 mg"]},
+  {name:"Hydrochlorothiazide",brand:"Microzide",cls:"Diuretic",form:"tablet",strengths:["12.5 mg","25 mg","50 mg"]},
+  {name:"Furosemide",brand:"Lasix",cls:"Diuretic",form:"tablet",strengths:["20 mg","40 mg","80 mg"]},
+  {name:"Chlorthalidone",brand:"Thalitone",cls:"Diuretic",form:"tablet",strengths:["15 mg","25 mg","50 mg"]},
+  {name:"Spironolactone",brand:"Aldactone",cls:"Diuretic",form:"tablet",strengths:["25 mg","50 mg","100 mg"]},
+  {name:"Torsemide",brand:"Demadex",cls:"Diuretic",form:"tablet",strengths:["5 mg","10 mg","20 mg","100 mg"]},
+  {name:"Omeprazole",brand:"Prilosec",cls:"PPI",form:"delayed-release capsule",strengths:["10 mg","20 mg","40 mg"]},
+  {name:"Esomeprazole",brand:"Nexium",cls:"PPI",form:"delayed-release capsule",strengths:["20 mg","40 mg"]},
+  {name:"Pantoprazole",brand:"Protonix",cls:"PPI",form:"delayed-release tablet",strengths:["20 mg","40 mg"]},
+  {name:"Lansoprazole",brand:"Prevacid",cls:"PPI",form:"delayed-release capsule",strengths:["15 mg","30 mg"]},
+  {name:"Famotidine",brand:"Pepcid",cls:"H2 Blocker",form:"tablet",strengths:["10 mg","20 mg","40 mg"]},
+  {name:"Metformin",brand:"Glucophage",cls:"Diabetes",form:"tablet",strengths:["500 mg","850 mg","1000 mg"]},
+  {name:"Metformin ER",brand:"Glucophage XR",cls:"Diabetes",form:"extended-release tablet",strengths:["500 mg","750 mg","1000 mg"]},
+  {name:"Semaglutide (oral)",brand:"Rybelsus",cls:"Diabetes / GLP-1",form:"tablet",strengths:["3 mg","7 mg","14 mg"]},
+  {name:"Semaglutide (Ozempic)",brand:"Ozempic",cls:"Diabetes / GLP-1 Injection",form:"prefilled injection pen",strengths:["0.25 mg","0.5 mg","1 mg","2 mg"]},
+  {name:"Semaglutide (Wegovy)",brand:"Wegovy",cls:"Weight Loss / GLP-1 Injection",form:"prefilled injection pen",strengths:["0.25 mg","0.5 mg","1 mg","1.7 mg","2.4 mg"]},
+  {name:"Tirzepatide (Mounjaro)",brand:"Mounjaro",cls:"Diabetes / GIP+GLP-1 Injection",form:"prefilled injection pen",strengths:["2.5 mg","5 mg","7.5 mg","10 mg","12.5 mg","15 mg"]},
+  {name:"Tirzepatide (Zepbound)",brand:"Zepbound",cls:"Weight Loss / GIP+GLP-1 Injection",form:"prefilled injection pen",strengths:["2.5 mg","5 mg","7.5 mg","10 mg","12.5 mg","15 mg"]},
+  {name:"Dulaglutide",brand:"Trulicity",cls:"Diabetes / GLP-1 Injection",form:"prefilled injection pen",strengths:["0.75 mg","1.5 mg","3 mg","4.5 mg"]},
+  {name:"Liraglutide",brand:"Victoza",cls:"Diabetes / GLP-1 Injection",form:"prefilled injection pen",strengths:["0.6 mg","1.2 mg","1.8 mg"]},
+  {name:"Sitagliptin",brand:"Januvia",cls:"Diabetes",form:"tablet",strengths:["25 mg","50 mg","100 mg"]},
+  {name:"Glipizide",brand:"Glucotrol",cls:"Diabetes",form:"tablet",strengths:["5 mg","10 mg"]},
+  {name:"Glimepiride",brand:"Amaryl",cls:"Diabetes",form:"tablet",strengths:["1 mg","2 mg","4 mg"]},
+  {name:"Empagliflozin",brand:"Jardiance",cls:"Diabetes / SGLT2",form:"tablet",strengths:["10 mg","25 mg"]},
+  {name:"Dapagliflozin",brand:"Farxiga",cls:"Diabetes / SGLT2",form:"tablet",strengths:["5 mg","10 mg"]},
+  {name:"Levothyroxine",brand:"Synthroid / Levoxyl",cls:"Thyroid",form:"tablet",strengths:["25 mcg","50 mcg","75 mcg","88 mcg","100 mcg","112 mcg","125 mcg","137 mcg","150 mcg","175 mcg","200 mcg"]},
+  {name:"Liothyronine",brand:"Cytomel",cls:"Thyroid",form:"tablet",strengths:["5 mcg","25 mcg","50 mcg"]},
+  {name:"Methimazole",brand:"Tapazole",cls:"Thyroid",form:"tablet",strengths:["5 mg","10 mg"]},
+  {name:"Sertraline",brand:"Zoloft",cls:"Antidepressant (SSRI)",form:"tablet",strengths:["25 mg","50 mg","100 mg"]},
+  {name:"Escitalopram",brand:"Lexapro",cls:"Antidepressant (SSRI)",form:"tablet",strengths:["5 mg","10 mg","20 mg"]},
+  {name:"Fluoxetine",brand:"Prozac",cls:"Antidepressant (SSRI)",form:"capsule",strengths:["10 mg","20 mg","40 mg","60 mg"]},
+  {name:"Citalopram",brand:"Celexa",cls:"Antidepressant (SSRI)",form:"tablet",strengths:["10 mg","20 mg","40 mg"]},
+  {name:"Venlafaxine",brand:"Effexor XR",cls:"Antidepressant (SNRI)",form:"extended-release capsule",strengths:["37.5 mg","75 mg","150 mg"]},
+  {name:"Duloxetine",brand:"Cymbalta",cls:"Antidepressant (SNRI)",form:"delayed-release capsule",strengths:["20 mg","30 mg","60 mg"]},
+  {name:"Bupropion",brand:"Wellbutrin XL",cls:"Antidepressant",form:"extended-release tablet",strengths:["100 mg","150 mg","200 mg","300 mg"]},
+  {name:"Mirtazapine",brand:"Remeron",cls:"Antidepressant",form:"tablet",strengths:["7.5 mg","15 mg","30 mg","45 mg"]},
+  {name:"Amitriptyline",brand:"Elavil",cls:"Antidepressant (TCA)",form:"tablet",strengths:["10 mg","25 mg","50 mg","75 mg","100 mg"]},
+  {name:"Trazodone",brand:"Desyrel",cls:"Antidepressant",form:"tablet",strengths:["50 mg","100 mg","150 mg","300 mg"]},
+  {name:"Buspirone",brand:"Buspar",cls:"Anxiolytic",form:"tablet",strengths:["5 mg","10 mg","15 mg","30 mg"]},
+  {name:"Alprazolam",brand:"Xanax",cls:"Benzodiazepine",form:"tablet",strengths:["0.25 mg","0.5 mg","1 mg","2 mg"]},
+  {name:"Lorazepam",brand:"Ativan",cls:"Benzodiazepine",form:"tablet",strengths:["0.5 mg","1 mg","2 mg"]},
+  {name:"Clonazepam",brand:"Klonopin",cls:"Benzodiazepine",form:"tablet",strengths:["0.5 mg","1 mg","2 mg"]},
+  {name:"Zolpidem",brand:"Ambien",cls:"Sleep Aid",form:"tablet",strengths:["5 mg","10 mg"]},
+  {name:"Quetiapine",brand:"Seroquel",cls:"Antipsychotic",form:"tablet",strengths:["25 mg","50 mg","100 mg","200 mg","300 mg","400 mg"]},
+  {name:"Aripiprazole",brand:"Abilify",cls:"Antipsychotic",form:"tablet",strengths:["2 mg","5 mg","10 mg","15 mg","20 mg","30 mg"]},
+  {name:"Risperidone",brand:"Risperdal",cls:"Antipsychotic",form:"tablet",strengths:["0.25 mg","0.5 mg","1 mg","2 mg","3 mg","4 mg"]},
+  {name:"Gabapentin",brand:"Neurontin",cls:"Anticonvulsant / Nerve Pain",form:"capsule",strengths:["100 mg","300 mg","400 mg"]},
+  {name:"Pregabalin",brand:"Lyrica",cls:"Anticonvulsant / Nerve Pain",form:"capsule",strengths:["25 mg","50 mg","75 mg","100 mg","150 mg","200 mg","300 mg"]},
+  {name:"Levetiracetam",brand:"Keppra",cls:"Anticonvulsant",form:"tablet",strengths:["250 mg","500 mg","750 mg","1000 mg"]},
+  {name:"Lamotrigine",brand:"Lamictal",cls:"Mood Stabilizer / Anticonvulsant",form:"tablet",strengths:["25 mg","50 mg","100 mg","150 mg","200 mg"]},
+  {name:"Topiramate",brand:"Topamax",cls:"Anticonvulsant",form:"tablet",strengths:["25 mg","50 mg","100 mg","200 mg"]},
+  {name:"Divalproex",brand:"Depakote",cls:"Mood Stabilizer / Anticonvulsant",form:"delayed-release tablet",strengths:["125 mg","250 mg","500 mg"]},
+  {name:"Lithium carbonate",brand:"Lithobid",cls:"Mood Stabilizer",form:"tablet",strengths:["150 mg","300 mg","600 mg"]},
+  {name:"Acetaminophen",brand:"Tylenol",cls:"Pain Reliever (OTC)",form:"tablet",strengths:["325 mg","500 mg","650 mg"]},
+  {name:"Ibuprofen",brand:"Advil / Motrin",cls:"NSAID (OTC)",form:"tablet",strengths:["200 mg","400 mg","600 mg","800 mg"]},
+  {name:"Naproxen",brand:"Aleve / Naprosyn",cls:"NSAID",form:"tablet",strengths:["220 mg","250 mg","375 mg","500 mg"]},
+  {name:"Celecoxib",brand:"Celebrex",cls:"NSAID (COX-2)",form:"capsule",strengths:["50 mg","100 mg","200 mg","400 mg"]},
+  {name:"Meloxicam",brand:"Mobic",cls:"NSAID",form:"tablet",strengths:["7.5 mg","15 mg"]},
+  {name:"Tramadol",brand:"Ultram",cls:"Opioid-like Analgesic",form:"tablet",strengths:["50 mg","100 mg"]},
+  {name:"Hydrocodone; Acetaminophen",brand:"Vicodin / Norco",cls:"Opioid Analgesic",form:"tablet",strengths:["5/325 mg","7.5/325 mg","10/325 mg"]},
+  {name:"Colchicine",brand:"Colcrys",cls:"Gout",form:"tablet",strengths:["0.6 mg"]},
+  {name:"Allopurinol",brand:"Zyloprim",cls:"Gout",form:"tablet",strengths:["100 mg","300 mg"]},
+  {name:"Amoxicillin",brand:"Amoxil",cls:"Antibiotic (Penicillin)",form:"capsule",strengths:["250 mg","500 mg","875 mg"]},
+  {name:"Amoxicillin; Clavulanate",brand:"Augmentin",cls:"Antibiotic (Penicillin)",form:"tablet",strengths:["250/125 mg","500/125 mg","875/125 mg"]},
+  {name:"Azithromycin",brand:"Zithromax",cls:"Antibiotic (Macrolide)",form:"tablet",strengths:["250 mg","500 mg","600 mg"]},
+  {name:"Doxycycline",brand:"Vibramycin / Doryx",cls:"Antibiotic (Tetracycline)",form:"capsule",strengths:["50 mg","75 mg","100 mg","150 mg"]},
+  {name:"Ciprofloxacin",brand:"Cipro",cls:"Antibiotic (Fluoroquinolone)",form:"tablet",strengths:["250 mg","500 mg","750 mg"]},
+  {name:"Levofloxacin",brand:"Levaquin",cls:"Antibiotic (Fluoroquinolone)",form:"tablet",strengths:["250 mg","500 mg","750 mg"]},
+  {name:"Sulfamethoxazole; Trimethoprim",brand:"Bactrim / Septra",cls:"Antibiotic (Sulfonamide)",form:"tablet",strengths:["400/80 mg","800/160 mg"]},
+  {name:"Clindamycin",brand:"Cleocin",cls:"Antibiotic",form:"capsule",strengths:["75 mg","150 mg","300 mg"]},
+  {name:"Metronidazole",brand:"Flagyl",cls:"Antibiotic / Antiprotozoal",form:"tablet",strengths:["250 mg","500 mg"]},
+  {name:"Nitrofurantoin",brand:"Macrobid",cls:"Antibiotic (UTI)",form:"capsule",strengths:["25 mg","50 mg","100 mg"]},
+  {name:"Cephalexin",brand:"Keflex",cls:"Antibiotic (Cephalosporin)",form:"capsule",strengths:["250 mg","500 mg","750 mg"]},
+  {name:"Cetirizine",brand:"Zyrtec",cls:"Antihistamine (OTC)",form:"tablet",strengths:["5 mg","10 mg"]},
+  {name:"Loratadine",brand:"Claritin",cls:"Antihistamine (OTC)",form:"tablet",strengths:["10 mg"]},
+  {name:"Fexofenadine",brand:"Allegra",cls:"Antihistamine (OTC)",form:"tablet",strengths:["60 mg","120 mg","180 mg"]},
+  {name:"Diphenhydramine",brand:"Benadryl",cls:"Antihistamine (OTC)",form:"tablet",strengths:["25 mg","50 mg"]},
+  {name:"Hydroxyzine",brand:"Vistaril / Atarax",cls:"Antihistamine / Anxiolytic",form:"capsule",strengths:["10 mg","25 mg","50 mg","100 mg"]},
+  {name:"Albuterol",brand:"ProAir / Ventolin",cls:"Bronchodilator (Inhaler)",form:"inhaler",strengths:["90 mcg/actuation"]},
+  {name:"Fluticasone; Salmeterol",brand:"Advair",cls:"Inhaled Corticosteroid / LABA",form:"inhaler",strengths:["100/50 mcg","250/50 mcg","500/50 mcg"]},
+  {name:"Budesonide; Formoterol",brand:"Symbicort",cls:"Inhaled Corticosteroid / LABA",form:"inhaler",strengths:["80/4.5 mcg","160/4.5 mcg"]},
+  {name:"Tiotropium",brand:"Spiriva",cls:"Anticholinergic (COPD)",form:"inhaler",strengths:["18 mcg"]},
+  {name:"Montelukast",brand:"Singulair",cls:"Leukotriene Modifier",form:"tablet",strengths:["4 mg","5 mg","10 mg"]},
+  {name:"Fluticasone nasal",brand:"Flonase",cls:"Nasal Corticosteroid",form:"nasal spray",strengths:["50 mcg/spray"]},
+  {name:"Mometasone nasal",brand:"Nasonex",cls:"Nasal Corticosteroid",form:"nasal spray",strengths:["50 mcg/spray"]},
+  {name:"Prednisone",brand:"Deltasone",cls:"Corticosteroid",form:"tablet",strengths:["1 mg","2.5 mg","5 mg","10 mg","20 mg","50 mg"]},
+  {name:"Methylprednisolone",brand:"Medrol",cls:"Corticosteroid",form:"tablet",strengths:["2 mg","4 mg","8 mg","16 mg","32 mg"]},
+  {name:"Dexamethasone",brand:"Decadron",cls:"Corticosteroid",form:"tablet",strengths:["0.5 mg","0.75 mg","1 mg","1.5 mg","2 mg","4 mg","6 mg"]},
+  {name:"Warfarin",brand:"Coumadin",cls:"Anticoagulant",form:"tablet",strengths:["1 mg","2 mg","2.5 mg","3 mg","4 mg","5 mg","6 mg","7.5 mg","10 mg"]},
+  {name:"Apixaban",brand:"Eliquis",cls:"Anticoagulant (DOAC)",form:"tablet",strengths:["2.5 mg","5 mg"]},
+  {name:"Rivaroxaban",brand:"Xarelto",cls:"Anticoagulant (DOAC)",form:"tablet",strengths:["2.5 mg","10 mg","15 mg","20 mg"]},
+  {name:"Dabigatran",brand:"Pradaxa",cls:"Anticoagulant (DOAC)",form:"capsule",strengths:["75 mg","110 mg","150 mg"]},
+  {name:"Clopidogrel",brand:"Plavix",cls:"Antiplatelet",form:"tablet",strengths:["75 mg","300 mg"]},
+  {name:"Aspirin",brand:"Bayer",cls:"Antiplatelet / NSAID (OTC)",form:"tablet",strengths:["81 mg","325 mg","500 mg"]},
+  {name:"Digoxin",brand:"Lanoxin",cls:"Cardiac Glycoside",form:"tablet",strengths:["0.0625 mg","0.125 mg","0.25 mg"]},
+  {name:"Amiodarone",brand:"Pacerone",cls:"Antiarrhythmic",form:"tablet",strengths:["100 mg","200 mg","400 mg"]},
+  {name:"Isosorbide mononitrate",brand:"Imdur",cls:"Nitrate",form:"extended-release tablet",strengths:["30 mg","60 mg","120 mg"]},
+  {name:"Sacubitril; Valsartan",brand:"Entresto",cls:"Heart Failure",form:"tablet",strengths:["24/26 mg","49/51 mg","97/103 mg"]},
+  {name:"Ezetimibe",brand:"Zetia",cls:"Cholesterol",form:"tablet",strengths:["10 mg"]},
+  {name:"Fenofibrate",brand:"Tricor",cls:"Cholesterol (Fibrate)",form:"tablet",strengths:["48 mg","54 mg","145 mg","160 mg"]},
+  {name:"Ondansetron",brand:"Zofran",cls:"Antiemetic",form:"tablet",strengths:["4 mg","8 mg"]},
+  {name:"Polyethylene glycol 3350",brand:"MiraLax",cls:"Laxative (OTC)",form:"powder",strengths:["17 g/dose"]},
+  {name:"Tamsulosin",brand:"Flomax",cls:"Alpha Blocker (BPH)",form:"capsule",strengths:["0.4 mg"]},
+  {name:"Finasteride",brand:"Proscar / Propecia",cls:"5-Alpha Reductase Inhibitor",form:"tablet",strengths:["1 mg","5 mg"]},
+  {name:"Oxybutynin",brand:"Ditropan",cls:"Anticholinergic (Bladder)",form:"tablet",strengths:["5 mg","10 mg"]},
+  {name:"Estradiol",brand:"Estrace",cls:"Estrogen",form:"tablet",strengths:["0.5 mg","1 mg","2 mg"]},
+  {name:"Progesterone",brand:"Prometrium",cls:"Progestin",form:"capsule",strengths:["100 mg","200 mg"]},
+  {name:"Amphetamine salts",brand:"Adderall",cls:"ADHD Stimulant",form:"tablet",strengths:["5 mg","10 mg","15 mg","20 mg","30 mg"]},
+  {name:"Amphetamine salts XR",brand:"Adderall XR",cls:"ADHD Stimulant",form:"extended-release capsule",strengths:["5 mg","10 mg","15 mg","20 mg","25 mg","30 mg"]},
+  {name:"Lisdexamfetamine",brand:"Vyvanse",cls:"ADHD Stimulant",form:"capsule",strengths:["20 mg","30 mg","40 mg","50 mg","60 mg","70 mg"]},
+  {name:"Methylphenidate",brand:"Ritalin",cls:"ADHD Stimulant",form:"tablet",strengths:["5 mg","10 mg","20 mg"]},
+  {name:"Methylphenidate ER",brand:"Concerta",cls:"ADHD Stimulant",form:"extended-release tablet",strengths:["18 mg","27 mg","36 mg","54 mg"]},
+  {name:"Atomoxetine",brand:"Strattera",cls:"ADHD Non-stimulant",form:"capsule",strengths:["10 mg","18 mg","25 mg","40 mg","60 mg","80 mg","100 mg"]},
+  {name:"Alendronate",brand:"Fosamax",cls:"Bisphosphonate",form:"tablet",strengths:["5 mg","10 mg","35 mg","70 mg"]},
+  {name:"Calcium carbonate",brand:"Tums / Os-Cal",cls:"Supplement",form:"tablet",strengths:["500 mg","600 mg","1000 mg","1250 mg"]},
+  {name:"Vitamin D3",brand:"",cls:"Supplement (OTC)",form:"tablet",strengths:["400 IU","1000 IU","2000 IU","5000 IU"]},
+  {name:"Vitamin D2",brand:"",cls:"Supplement",form:"capsule",strengths:["50,000 IU"]},
+  {name:"Potassium chloride",brand:"Klor-Con",cls:"Electrolyte Supplement",form:"extended-release tablet",strengths:["8 mEq","10 mEq","20 mEq"]},
+  {name:"Ferrous sulfate",brand:"",cls:"Iron Supplement",form:"tablet",strengths:["325 mg"]},
+  {name:"Folic acid",brand:"",cls:"Supplement",form:"tablet",strengths:["0.4 mg","0.8 mg","1 mg"]},
+  {name:"Methotrexate",brand:"Trexall",cls:"Immunosuppressant / DMARD",form:"tablet",strengths:["2.5 mg","5 mg","7.5 mg","10 mg","15 mg"]},
+  {name:"Hydroxychloroquine",brand:"Plaquenil",cls:"Antimalarial / DMARD",form:"tablet",strengths:["200 mg"]},
+  {name:"Donepezil",brand:"Aricept",cls:"Dementia",form:"tablet",strengths:["5 mg","10 mg","23 mg"]},
+  {name:"Memantine",brand:"Namenda",cls:"Dementia",form:"tablet",strengths:["5 mg","10 mg"]},
+  {name:"Carbidopa; Levodopa",brand:"Sinemet",cls:"Parkinson's",form:"tablet",strengths:["10/100 mg","25/100 mg","25/250 mg"]},
+  {name:"Sumatriptan",brand:"Imitrex",cls:"Migraine",form:"tablet",strengths:["25 mg","50 mg","100 mg"]},
+  {name:"Tamoxifen",brand:"Nolvadex",cls:"Hormone Therapy (Cancer)",form:"tablet",strengths:["10 mg","20 mg"]},
+  {name:"Anastrozole",brand:"Arimidex",cls:"Aromatase Inhibitor (Cancer)",form:"tablet",strengths:["1 mg"]},
+  {name:"Latanoprost",brand:"Xalatan",cls:"Glaucoma (Eye Drop)",form:"eye drop",strengths:["0.005%"]},
+  {name:"Timolol ophthalmic",brand:"Timoptic",cls:"Glaucoma (Eye Drop)",form:"eye drop",strengths:["0.25%","0.5%"]},
+  {name:"Baclofen",brand:"Lioresal",cls:"Muscle Relaxant",form:"tablet",strengths:["5 mg","10 mg","20 mg"]},
+  {name:"Cyclobenzaprine",brand:"Flexeril",cls:"Muscle Relaxant",form:"tablet",strengths:["5 mg","7.5 mg","10 mg"]},
+  {name:"Tizanidine",brand:"Zanaflex",cls:"Muscle Relaxant",form:"tablet",strengths:["2 mg","4 mg"]},
+  {name:"Varenicline",brand:"Chantix",cls:"Smoking Cessation",form:"tablet",strengths:["0.5 mg","1 mg"]},
+  {name:"Hydralazine",brand:"Apresoline",cls:"Vasodilator",form:"tablet",strengths:["10 mg","25 mg","50 mg","100 mg"]},
+];
+
+medSearch.addEventListener('input',function(){
+  selectedMedIndex=null;strengthSelect.innerHTML='<option value="">— Select medication first —</option>';strengthSelect.disabled=true;
+  const q=this.value.trim().toLowerCase();
+  if(!q){dropdownList.classList.remove('open');dropdownList.innerHTML='';return;}
+  const matches=MED_DB.filter(function(m){return m.name.toLowerCase().includes(q)||(m.brand&&m.brand.toLowerCase().includes(q));});
+  if(!matches.length){dropdownList.classList.remove('open');dropdownList.innerHTML='';return;}
+  const groups={};matches.forEach(function(m){if(!groups[m.cls])groups[m.cls]=[];groups[m.cls].push(m);});
+  let html='';Object.keys(groups).forEach(function(cls){html+='<div class="dropdown-group-label">'+cls+'</div>';groups[cls].forEach(function(m){const idx=MED_DB.indexOf(m);const b=m.brand?' ('+m.brand+')':'';html+='<div class="dropdown-item" data-idx="'+idx+'"><div class="di-name">'+m.name+b+'</div><div class="di-detail">'+m.cls+' · '+m.form+'</div></div>';});});
+  dropdownList.innerHTML=html;dropdownList.classList.add('open');
+});
+
+dropdownList.addEventListener('mousedown',function(e){
+  const item=e.target.closest('.dropdown-item');if(!item)return;e.preventDefault();
+  const idx=parseInt(item.dataset.idx,10);selectedMedIndex=idx;const med=MED_DB[idx];
+  medSearch.value=med.name+(med.brand?' ('+med.brand+')':'');dropdownList.classList.remove('open');dropdownList.innerHTML='';
+  strengthSelect.innerHTML='<option value="">— Select strength —</option>';
+  med.strengths.forEach(function(s){const o=document.createElement('option');o.value=s;o.textContent=s+' '+med.form;strengthSelect.appendChild(o);});
+  strengthSelect.disabled=false;
+  document.getElementById('qtyUnit').textContent=getUnit(med.form);
+  qty=(med.form.toLowerCase().includes('injection')||med.form.toLowerCase().includes('pen'))?0.5:1;
+  document.getElementById('qtyDisplay').textContent=fmtQ(qty);
+});
+
+document.addEventListener('click',function(e){if(!e.target.closest('.med-search-wrap'))dropdownList.classList.remove('open');});
+
+function initFlagChips(sel){document.querySelectorAll(sel).forEach(function(chip){chip.addEventListener('click',function(){const cb=this.querySelector('input[type="checkbox"]');cb.checked=!cb.checked;this.classList.toggle('checked',cb.checked);});});}
+initFlagChips('#timeChips .flag-chip');
+document.querySelectorAll('#flagGroup .flag-chip').forEach(function(chip){chip.addEventListener('click',function(){const cb=this.querySelector('input[type="checkbox"]');cb.checked=!cb.checked;this.classList.toggle('checked',cb.checked);});});
+document.querySelectorAll('#dayChips .day-chip').forEach(function(chip){
+  chip.addEventListener('click',function(){
+    const cb=this.querySelector('input[type="checkbox"]');cb.checked=!cb.checked;this.classList.toggle('checked',cb.checked);
+    if(this.dataset.action==='all'){const c=cb.checked;document.querySelectorAll('#dayChips .day-chip[data-day]').forEach(function(dc){dc.querySelector('input').checked=c;dc.classList.toggle('checked',c);});}
+    else{const allChip=document.querySelector('#dayChips .day-chip[data-action="all"]');const allC=Array.from(document.querySelectorAll('#dayChips .day-chip[data-day]')).every(function(dc){return dc.querySelector('input').checked;});allChip.querySelector('input').checked=allC;allChip.classList.toggle('checked',allC);}
+  });
+});
+
+function getCheckedSlots(){const s=[];document.querySelectorAll('#timeChips .flag-chip').forEach(function(c){if(c.querySelector('input').checked)s.push(c.dataset.slot);});return s;}
+function getCheckedDays(){const d=[];document.querySelectorAll('#dayChips .day-chip[data-day]').forEach(function(c){if(c.querySelector('input').checked)d.push(parseInt(c.dataset.day));});return d;}
+function getFlags(){
+  const f={};
+  FLAG_DEFS.forEach(function(fd){f[fd.key]=document.querySelector('#flagGroup .flag-chip[data-flag="'+fd.key+'"] input').checked;});
+  f.other=document.getElementById('otherFlagChip').querySelector('input').checked;
+  f.otherText=f.other?document.getElementById('otherText').value.trim():'';
+  return f;
+}
+function resetChips(sel){document.querySelectorAll(sel).forEach(function(c){c.querySelector('input').checked=false;c.classList.remove('checked');});}
+function getFlagTexts(flags){
+  const parts=[];
+  FLAG_DEFS.forEach(function(fd){if(flags[fd.key])parts.push(FLAG_TEXT[fd.key]);});
+  if(flags.other&&flags.otherText)parts.push(flags.otherText);
+  return parts;
+}
+
+// ── INLINE EDIT HELPERS ──
+window.editQtyChange=function(id,delta){
+  const med=medications.find(function(m){return m.id===id;});if(!med)return;
+  if(editQtyMap[id]===undefined)editQtyMap[id]=med.qty;
+  editQtyMap[id]=Math.round(Math.max(0.5,Math.min(20,editQtyMap[id]+delta))*10)/10;
+  const el=document.getElementById('edit-qty-display-'+id);
+  if(el)el.textContent=fmtQ(editQtyMap[id]);
+};
+window.cancelInlineEdit=function(id){
+  const panel=document.getElementById('edit-panel-'+id);
+  if(panel)panel.style.display='none';
+  delete editQtyMap[id];
+};
+window.saveInlineEdit=function(id){
+  const med=medications.find(function(m){return m.id===id;});if(!med)return;
+  const strengthEl=document.getElementById('edit-strength-'+id);
+  if(strengthEl&&strengthEl.value)med.strength=strengthEl.value;
+  if(editQtyMap[id]!==undefined)med.qty=editQtyMap[id];
+  delete editQtyMap[id];
+  const slotsContainer=document.getElementById('edit-slots-'+id);
+  if(slotsContainer){
+    const checked=[];
+    slotsContainer.querySelectorAll('[data-slot]').forEach(function(c){if(c.querySelector('input').checked)checked.push(c.dataset.slot);});
+    if(checked.length)med.slots=checked;
+  }
+  if(med.isShortTerm){
+    const stStart=document.getElementById('edit-ststart-'+id);
+    const stDur=document.getElementById('edit-stdur-'+id);
+    if(stStart&&stStart.value)med.stStart=stStart.value;
+    if(stDur&&parseInt(stDur.value,10)>0){
+      med.stDuration=parseInt(stDur.value,10);
+      med.stEnd=toYMD(addDays(parseLocalDate(med.stStart),med.stDuration-1));
+    }
+  } else {
+    const daysContainer=document.getElementById('edit-days-'+id);
+    if(daysContainer){
+      const checked=[];
+      daysContainer.querySelectorAll('[data-day]').forEach(function(c){if(c.querySelector('input').checked)checked.push(parseInt(c.dataset.day));});
+      if(checked.length)med.days=checked;
+    }
+  }
+  renderAll();
+};
+window.toggleInlineChip=function(el){
+  const cb=el.querySelector('input');cb.checked=!cb.checked;el.classList.toggle('checked',cb.checked);
+};
+
+document.getElementById('addBtn').addEventListener('click',function(){
+  if(selectedMedIndex===null){alert('Please select a medication from the dropdown.');return;}
+  const strength=strengthSelect.value;if(!strength){alert('Please select a strength.');return;}
+  const slots=getCheckedSlots();if(!slots.length){alert('Please select at least one time of day.');return;}
+  const isShortTerm=document.getElementById('shortTermCheck').checked;
+  let days=[],stStart=null,stEnd=null,stDuration=0;
+  if(isShortTerm){
+    const stStartVal=document.getElementById('stStartDate').value;
+    const stDurVal=parseInt(document.getElementById('stDuration').value,10);
+    if(!stStartVal){alert('Please enter a start date for this short-term medication.');return;}
+    if(!stDurVal||stDurVal<1||stDurVal>31){alert('Please enter a duration between 1 and 31 days.');return;}
+    stStart=parseLocalDate(stStartVal);stDuration=stDurVal;stEnd=addDays(stStart,stDuration-1);
+  } else {
+    days=getCheckedDays();if(!days.length){alert('Please select at least one day of the week.');return;}
+  }
+  const med=MED_DB[selectedMedIndex];
+  medications.push({id:nextId++,name:med.name,brand:med.brand,strength:strength,form:med.form,qty:qty,slots:slots,days:days,flags:getFlags(),isShortTerm:isShortTerm,stStart:stStart?toYMD(stStart):null,stEnd:stEnd?toYMD(stEnd):null,stDuration:stDuration});
+  renderAll();resetForm();
+});
+
+document.getElementById('addedMeds').addEventListener('click',function(e){
+  if(e.target.closest('.edit-btn-sm')){
+    const id=parseInt(e.target.closest('.edit-btn-sm').dataset.id,10);
+    document.querySelectorAll('.inline-edit-panel').forEach(function(p){p.style.display='none';});
+    const panel=document.getElementById('edit-panel-'+id);
+    if(panel){panel.style.display='block';}
+    return;
+  }
+  if(e.target.closest('.remove-btn-sm')){
+    const id=parseInt(e.target.closest('.remove-btn-sm').dataset.id,10);
+    medications=medications.filter(function(m){return m.id!==id;});
+    renderAll();
+  }
+});
+
+document.getElementById('clearBtn').addEventListener('click',function(){if(!medications.length)return;if(confirm('Remove all medications and start over?')){medications=[];currentWeekOffset=0;renderAll();}});
+document.getElementById('prevWeek').addEventListener('click',function(){if(currentWeekOffset>0){currentWeekOffset--;renderSchedule();}});
+document.getElementById('nextWeek').addEventListener('click',function(){if((currentWeekOffset+1)*7<getTotalDays()){currentWeekOffset++;renderSchedule();}});
+document.getElementById('scheduleStart').addEventListener('change',function(){currentWeekOffset=0;renderAll();});
+document.getElementById('scheduleEnd').addEventListener('change',function(){currentWeekOffset=0;renderAll();});
+
+function medActiveOnDate(med,date){
+  if(med.isShortTerm){if(!med.stStart||!med.stEnd)return false;const s=parseLocalDate(med.stStart);const e=parseLocalDate(med.stEnd);return date>=s&&date<=e;}
+  return med.days.includes(date.getDay());
+}
+
+function buildWeekGrid(startDate,weekOffset,totalDays){
+  const weekStart=addDays(startDate,weekOffset*7);
+  const maxEnd=addDays(startDate,totalDays-1);
+  const cols=[];for(let i=0;i<7;i++){const d=addDays(weekStart,i);cols.push(d<=maxEnd?d:null);}
+  const usedSlots=SLOT_ORDER.filter(function(slot){return medications.some(function(m){return m.slots.includes(slot);});});
+  const dayStart=weekOffset*7+1;const validCols=cols.filter(Boolean);const dayEnd=dayStart+validCols.length-1;
+  const rangeStr=validCols.length?fmtDisplayDate(validCols[0])+' – '+fmtDisplayDate(validCols[validCols.length-1]):'';
+  let html='<div class="doc-header"><div class="doc-header-left"><div class="doc-title">My Medication Schedule</div>'
+    +'<div class="doc-meta">'+rangeStr+' &nbsp;·&nbsp; Days '+dayStart+'–'+dayEnd+' of '+totalDays+'</div></div>'
+    +'<div class="doc-header-right"><div class="name-line-header"><span class="nl-label">Patient Name</span><span class="nl-rule"></span></div>'
+    +'<div class="privacy-note-header">Nothing on this form is saved or transmitted.</div></div></div>'
+    +'<div class="doc-body"><div class="pack-grid"><div class="pack-corner"><span>Time of Day</span></div>';
+  cols.forEach(function(d){if(!d){html+='<div class="pack-day-header empty-col"></div>';return;}const f=fmtColDate(d);html+='<div class="pack-day-header"><span class="day-name">'+f.dayName+'</span><span class="day-date">'+f.dateStr+'</span></div>';});
+  usedSlots.forEach(function(slot){
+    const meta=SLOT_META[slot];const labelLines=meta.label.split('\n');
+    html+='<div class="slot-label"><div class="slot-icon">'+meta.icon+'</div><div class="slot-header">'+labelLines.join('<br/>')+'</div></div>';
+    cols.forEach(function(d){
+      if(!d){html+='<div class="pack-pocket out-of-range"></div>';return;}
+      const medsHere=medications.filter(function(m){return m.slots.includes(slot)&&medActiveOnDate(m,d);});
+      const hasShortTerm=medsHere.some(function(m){return m.isShortTerm;});
+      if(!medsHere.length){html+='<div class="pack-pocket empty"><div class="empty-pocket-text">—</div></div>';return;}
+      html+='<div class="pack-pocket'+(hasShortTerm?' short-term-active':'')+'"><div class="pack-cell-content">';
+      medsHere.forEach(function(m){
+        const flagTexts=getFlagTexts(m.flags);const unit=getUnit(m.form);
+        html+='<div class="pocket-med"><span class="pocket-checkbox"></span><div class="pocket-med-text"><div class="pocket-med-nameline">'
+          +'<span class="pocket-med-name'+(m.isShortTerm?' short-term':'')+'">'+escHtml(m.name)+'</span>'
+          +'<span class="pocket-med-strength">'+escHtml(m.strength)+'</span></div>'
+          +'<div class="pocket-med-qty">'+fmtQ(m.qty)+' '+unit+'</div>'
+          +(flagTexts.length?'<div class="pocket-med-flags">('+flagTexts.join('; ')+')</div>':'')
+          +'</div></div>';
+      });
+      html+='</div></div>';
+    });
+  });
+  html+='</div></div>';return html;
+}
+
+function renderAll(){renderSchedule();renderPrintAllWeeks();renderAddedList();renderMedList();renderWallet();}
+
+function renderSchedule(){
+  const body=document.getElementById('scheduleBody');const weekNav=document.getElementById('weekNav');
+  const startDate=parseLocalDate(document.getElementById('scheduleStart').value);const totalDays=getTotalDays();
+  if(!medications.length||!startDate){body.innerHTML='<div class="empty-state"><div class="icon">💊</div><p>Add medications and set a start date<br/>to build your schedule.</p></div>';weekNav.style.display='none';document.getElementById('schedDateRange').textContent='Set a start and end date to see your schedule';return;}
+  const weekStart=addDays(startDate,currentWeekOffset*7);const maxEnd=addDays(startDate,totalDays-1);
+  const validCols=[];for(let i=0;i<7;i++){const d=addDays(weekStart,i);if(d<=maxEnd)validCols.push(d);}
+  const dayStart=currentWeekOffset*7+1;const dayEnd=dayStart+validCols.length-1;
+  document.getElementById('schedDateRange').textContent=validCols.length?fmtDisplayDate(validCols[0])+' – '+fmtDisplayDate(validCols[validCols.length-1]):'';
+  weekNav.style.display='flex';document.getElementById('weekNavLabel').textContent='Days '+dayStart+'–'+dayEnd+' of '+totalDays;
+  document.getElementById('prevWeek').disabled=currentWeekOffset===0;document.getElementById('nextWeek').disabled=dayEnd>=totalDays;
+  const tmp=document.createElement('div');tmp.innerHTML=buildWeekGrid(startDate,currentWeekOffset,totalDays);
+  const docBody=tmp.querySelector('.doc-body');body.innerHTML=docBody?docBody.innerHTML:'';
+}
+
+function renderPrintAllWeeks(){
+  const container=document.getElementById('printAllWeeks');const startDate=parseLocalDate(document.getElementById('scheduleStart').value);const totalDays=getTotalDays();
+  if(!medications.length||!startDate){container.innerHTML='';return;}
+  const numWeeks=Math.ceil(totalDays/7);let html='';
+  for(let w=0;w<numWeeks;w++){const weekStart=addDays(startDate,w*7);const maxEnd=addDays(startDate,totalDays-1);if(weekStart>maxEnd)break;html+='<div class="print-week-block print-doc">'+buildWeekGrid(startDate,w,totalDays)+'</div>';}
+  container.innerHTML=html;
+}
+
+function renderAddedList(){
+  const el=document.getElementById('addedMeds');
+  if(!medications.length){el.innerHTML='';return;}
+  const dayNames=['Su','M','Tu','W','Th','F','Sa'];
+  el.innerHTML='<div class="added-meds-title">Added Medications</div>'+medications.map(function(m){
+    const unit=getUnit(m.form);
+    const detail=m.isShortTerm
+      ?fmtQ(m.qty)+' '+unit+' · '+m.slots.join(', ')+'<br/>⏳ Starts '+m.stStart+' · '+m.stDuration+' days'
+      :fmtQ(m.qty)+' '+unit+' · '+m.slots.join(', ')+'<br/>'+m.days.map(function(d){return dayNames[d];}).join(', ');
+
+    // Strength options
+    const dbMed=MED_DB.find(function(db){return db.name===m.name;});
+    const strengthOpts=dbMed?dbMed.strengths.map(function(s){return'<option value="'+escHtml(s)+'"'+(s===m.strength?' selected':'')+'>'+escHtml(s)+'</option>';}).join(''):'<option value="'+escHtml(m.strength)+'" selected>'+escHtml(m.strength)+'</option>';
+
+    // Time chips
+    const timeChipsHtml=SLOT_ORDER.map(function(slot){
+      const checked=m.slots.includes(slot);
+      return'<label class="flag-chip'+(checked?' checked':'')+'" data-slot="'+slot+'" onclick="toggleInlineChip(this)"><input type="checkbox"'+(checked?' checked':'')+' style="display:none"/>'+SLOT_LABELS[slot]+'</label>';
+    }).join('');
+
+    // Day chips
+    const dayChipsHtml=['Su','M','Tu','W','Th','F','Sa'].map(function(d,i){
+      const checked=!m.isShortTerm&&m.days.includes(i);
+      return'<label class="day-chip'+(checked?' checked':'')+'" data-day="'+i+'" onclick="toggleInlineChip(this)"><input type="checkbox"'+(checked?' checked':'')+' style="display:none"/>'+d+'</label>';
+    }).join('');
+
+    return'<div class="added-med-item'+(m.isShortTerm?' short-term-item':'')+'" data-id="'+m.id+'">'
+      +'<div class="added-med-header">'
+      +'<div><div class="added-med-name">'+(m.isShortTerm?'⏳ ':'')+escHtml(m.name)+' '+escHtml(m.strength)+'</div>'
+      +'<div class="added-med-detail">'+detail+'</div></div>'
+      +'<div class="added-med-actions">'
+      +'<button class="edit-btn-sm" data-id="'+m.id+'">✏️ Edit</button>'
+      +'<button class="remove-btn-sm" data-id="'+m.id+'">✕</button>'
+      +'</div></div>'
+      // ── INLINE EDIT PANEL ──
+      +'<div class="inline-edit-panel" id="edit-panel-'+m.id+'">'
+      +'<div style="font-size:0.68rem;font-weight:700;color:var(--teal);margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px;">Editing: '+escHtml(m.name)+'</div>'
+      +'<div class="ie-section"><span class="ie-label">Strength</span>'
+      +'<select id="edit-strength-'+m.id+'">'+strengthOpts+'</select></div>'
+      +'<div class="ie-section"><span class="ie-label">How Many</span>'
+      +'<div style="display:flex;align-items:center;gap:6px;">'
+      +'<button class="qty-btn" onclick="editQtyChange('+m.id+',-0.5)">−</button>'
+      +'<span id="edit-qty-display-'+m.id+'" style="font-size:1rem;font-weight:700;min-width:28px;text-align:center;">'+fmtQ(m.qty)+'</span>'
+      +'<button class="qty-btn" onclick="editQtyChange('+m.id+',0.5)">+</button>'
+      +'<span style="font-size:0.78rem;color:var(--warm-gray);">'+getUnit(m.form)+'</span>'
+      +'</div></div>'
+      +'<div class="ie-section"><span class="ie-label">Time of Day</span>'
+      +'<div class="ie-chips" id="edit-slots-'+m.id+'">'+timeChipsHtml+'</div></div>'
+      +(m.isShortTerm
+        ?'<div class="ie-section"><div class="ie-row">'
+          +'<div><span class="ie-label" style="color:var(--amber);">Start Date</span>'
+          +'<input type="date" id="edit-ststart-'+m.id+'" value="'+(m.stStart||'')+'"/></div>'
+          +'<div><span class="ie-label" style="color:var(--amber);">Duration (days)</span>'
+          +'<input type="number" id="edit-stdur-'+m.id+'" value="'+(m.stDuration||'')+'" min="1" max="31"/></div>'
+          +'</div></div>'
+        :'<div class="ie-section"><span class="ie-label">Days of Week</span>'
+          +'<div class="ie-chips" id="edit-days-'+m.id+'">'+dayChipsHtml+'</div></div>'
+      )
+      +'<div style="display:flex;gap:6px;margin-top:4px;">'
+      +'<button class="ie-save" onclick="saveInlineEdit('+m.id+')">✓ Save Changes</button>'
+      +'<button class="ie-cancel" onclick="cancelInlineEdit('+m.id+')">Cancel</button>'
+      +'</div></div>'
+      +'</div>';
+  }).join('');
+}
+
+function renderMedList(){
+  const page=document.getElementById('medListPage');const tbody=document.getElementById('medListBody');
+  if(!medications.length){page.style.display='none';return;}page.style.display='';
+  const startDate=parseLocalDate(document.getElementById('scheduleStart').value);
+  document.getElementById('medListDate').textContent='List current as of: '+(startDate?fmtDisplayDate(startDate):fmtDisplayDate(new Date()));
+  const dayNames=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  tbody.innerHTML=medications.map(function(m){
+    const unit=getUnit(m.form);const flagTexts=getFlagTexts(m.flags);
+    const daysStr=m.isShortTerm?'Course only':m.days.map(function(d){return dayNames[d];}).join(', ');
+    let datesStr='Ongoing';
+    if(m.isShortTerm&&m.stStart&&m.stEnd){const s=parseLocalDate(m.stStart);const e=parseLocalDate(m.stEnd);datesStr='<span style="color:var(--amber);font-weight:600;">'+fmtDisplayDate(s)+' –<br/>'+fmtDisplayDate(e)+'</span>';}
+    return'<tr class="'+(m.isShortTerm?'short-term-row':'')+'">'
+      +'<td><span class="med-list-name'+(m.isShortTerm?' short-term':'')+'">'+escHtml(m.name)+'</span>'+(m.isShortTerm?'<span class="med-list-badge">Short-term</span>':'')+(m.brand?'<div style="font-size:0.7rem;color:var(--warm-gray);">'+escHtml(m.brand)+'</div>':'')+'</td>'
+      +'<td>'+escHtml(m.strength)+'</td><td>'+fmtQ(m.qty)+' '+unit+'</td><td>'+m.slots.join('<br/>')+'</td><td>'+daysStr+'</td>'
+      +'<td>'+(flagTexts.length?'<span class="med-list-flags">'+flagTexts.join('; ')+'</span>':'—')+'</td><td>'+datesStr+'</td></tr>';
+  }).join('');
+}
+
+function renderWallet(){
+  const ws=document.getElementById('walletSection');if(!medications.length){ws.style.display='none';return;}ws.style.display='';
+  document.getElementById('walletMedList').innerHTML=medications.map(function(m){
+    const unit=getUnit(m.form);
+    return'<div class="wallet-med-row"><span class="wallet-med-name">'+escHtml(m.name)+' '+escHtml(m.strength)+'</span><br/>'
+      +'<span class="wallet-med-detail">'+fmtQ(m.qty)+' '+unit+' · '+m.slots.join(', ')+(m.isShortTerm?' · ⏳ ends '+m.stEnd:'')+'</span></div>';
+  }).join('');
+}
+
+function resetForm(){
+  medSearch.value='';selectedMedIndex=null;dropdownList.classList.remove('open');dropdownList.innerHTML='';
+  strengthSelect.innerHTML='<option value="">— Select medication first —</option>';strengthSelect.disabled=true;
+  document.getElementById('qtyUnit').textContent='tablet(s)';qty=1;document.getElementById('qtyDisplay').textContent='1';
+  resetChips('#timeChips .flag-chip');
+  document.querySelectorAll('#flagGroup .flag-chip').forEach(function(c){c.querySelector('input').checked=false;c.classList.remove('checked');});
+  resetChips('#dayChips .day-chip');
+  document.getElementById('shortTermCheck').checked=false;
+  document.getElementById('shortTermFields').classList.remove('visible');
+  document.getElementById('regularDaysGroup').style.display='';
+  document.getElementById('stStartDate').value='';document.getElementById('stDuration').value='';
+  document.getElementById('otherWrap').classList.remove('visible');
+  document.getElementById('otherText').value='';document.getElementById('charCount').textContent='0';
+}
+
+renderAll();
+</script>
+</body>
+</html>
